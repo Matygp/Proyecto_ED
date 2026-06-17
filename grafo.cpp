@@ -12,7 +12,7 @@ Método privado para mapear IDs externos a índices internos continuos (0 a V-1)
 traduce el valor que viene del dataaset a un índice del arreglo
 Puede obtener los indices de los vertices ya creados, si no existen, los crea
 */
-int Grafo::obtener_o_crear_indice(int id_externo) {
+int Grafo::obtener_o_crear_indice(const std::string& id_externo) {
 
     //Si el ID externo ya existe en nuestro mapa, retorna su índice interno
     auto it = id_externo_a_interno.find(id_externo);
@@ -34,7 +34,7 @@ int Grafo::obtener_o_crear_indice(int id_externo) {
 }
 
 //Agrega un vértice, también permite agregar vértices aislados
-void Grafo::agregar_vertice(int id_externo) {
+void Grafo::agregar_vertice(const std::string& id_externo) {
     obtener_o_crear_indice(id_externo);
 }
 
@@ -42,7 +42,7 @@ void Grafo::agregar_vertice(int id_externo) {
 Agrega una arista conectando dos nodos con un peso determinado
 Si uno de los nodos no existe, lo crea
 */
-void Grafo::agregar_arista(int origen_externo, int destino_externo, double peso) {
+void Grafo::agregar_arista(const std::string& origen_externo, const std::string& destino_externo, double peso) {
     //obtener los índices internos contiguos para ambos nodos
     int u = obtener_o_crear_indice(origen_externo);
     int v = obtener_o_crear_indice(destino_externo);
@@ -79,12 +79,12 @@ bool Grafo::comprobar_si_es_dirigido() const {
     return es_dirigido;
 }
 
-//Permite recuperar el ID original del dataset usando el índice interno
-int Grafo::mapear_a_externo(int id_interno) const {
+//Permite recuperar el elemento original usando el índice interno
+std::string Grafo::mapear_a_externo(int id_interno) const {
     if (id_interno >= 0 && id_interno < num_vertices) {
         return id_interno_a_externo[id_interno];
     }
-    return -1; //Retorna ID inválido si está fuera de rango
+    return ""; //Retorna string vacío si está fuera de rango
 }
 
 /*

@@ -17,9 +17,9 @@ class Grafo {
 private:
     // Mapea el ID original del dataset (que puede ser un string o un int cualquiera) 
     // a un índice interno contiguo (0, 1, 2, ... V-1). Esto facilita el uso de vectores.
-    std::unordered_map<int, int> id_externo_a_interno;
-    std::vector<int> id_interno_a_externo;
-
+    std::unordered_map<std::string, int> id_externo_a_interno;
+    std::vector<std::string> id_interno_a_externo;
+    
     // La lista de adyacencia: un vector donde cada posición es la lista de aristas salientes de ese nodo
     std::vector<std::list<Arista>> lista_adyacencia;
     
@@ -32,22 +32,22 @@ private:
     int num_aristas;
 
     // Método privado para registrar un nodo internamente si no existe
-    int obtener_o_crear_indice(int id_externo);
+    int obtener_o_crear_indice(const std::string& id_externo);
 
 public:
     // Constructor: define si el grafo de entrada será dirigido o no
     Grafo(bool dirigido);
 
     // Métodos principales del ADT
-    void agregar_vertice(int id_externo);
-    void agregar_arista(int origen_externo, int destino_externo, double peso = 1.0);
+    void agregar_vertice(const std::string& id_externo);
+    void agregar_arista(const std::string& origen_externo, const std::string& destino_externo, double peso = 1.0);
 
     // Métodos de consulta esenciales para las métricas
     int obtener_num_vertices() const;
     int obtener_num_aristas() const;
     bool comprobar_si_es_dirigido() const;
     
-    int mapear_a_externo(int id_interno) const;
+    std::string mapear_a_externo(int id_interno) const;
 
     // Selectores para recorrer los vecinos (útiles para BFS, Dijkstra y PageRank)
     const std::list<Arista>& obtener_adyacentes_salientes(int id_interno) const;

@@ -4,7 +4,10 @@
 #include <string>
 #include <unordered_map> //para analizar tradenetwork
 #include <chrono> //para medir tiempo
+#include <algorithm>
+#include <iomanip>
 #include "grafo.h"
+#include "MedidasCentralidad.h"
 
 /*
 Función auxiliar que lee strings de manera inteligente y posee control de 
@@ -78,15 +81,43 @@ bool cargarDataset(Grafo& grafo, const std::string& rutaArchivo, bool tienePeso)
     return true;
 }
 
+// TEST DEGREE CENTRALITY: imprime los 5 nodos con mayor centralidad
+void DCentralityTop(const Grafo& grafo, const std::vector<double>& centralidad, const std::string& titulo) {
+    std::cout << "\n-  TOP: " << titulo << "   -\n";
+    int V = grafo.obtener_num_vertices();
+    if (V == 0) return;
+
+    //Crear un vector de pares (índice_interno, valor_centralidad)
+    std::vector<std::pair<int, double>> ranking;
+    for (int i = 0; i < V; ++i) {
+        ranking.push_back({i, centralidad[i]});
+    }
+
+    //Ordenar de mayor a menor según el valor de centralidad
+    std::sort(ranking.begin(), ranking.end(), [](const std::pair<int, double>& a, const std::pair<int, double>& b) {
+        return a.second > b.second; //compara los valores double
+    });
+
+    //Imprime
+    int limite = std::min(5, V);
+    for (int i = 0; i < limite; ++i) {
+        std::string nombre_nodo = grafo.mapear_a_externo(ranking[i].first);
+        std::cout << i + 1 << ". Nodo: " << nombre_nodo 
+                  << " | Puntaje: " << std::fixed << std::setprecision(4) << ranking[i].second << "\n";
+    }
+}
+
 int main() {
     std::cout << "===== PRUEBAS Y TEST COMPLETO =====\n\n";
 
     //Cargar Dataset Yeast 
+    std::cout << "===================================" << std::endl;
     std::cout << "-> Cargando dataset Yeast (Proteinas): " << std::endl;
     Grafo yeast(false); //No dirigido
 
     auto inicioYeast = std::chrono::high_resolution_clock::now();
     if (cargarDataset(yeast, "datasets/yeast.edgelist", false)) { 
+        MedidasCentralidad analizadorYeast(yeast);
         auto finYeast = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> tiempoYeast = finYeast - inicioYeast;
 
@@ -94,14 +125,22 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << yeast.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << yeast.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoYeast.count() << " ms\n" << std::endl;
+
+        std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
+
+        // CALCULA DEGREE CENTRALITY
+        std::vector<double> degree_yeast = analizadorYeast.calcular_degree_centrality();
+        DCentralityTop(yeast, degree_yeast, "Degree Centrality (Hubs Proteicos)"); //imprime
     }
 
     //Cargar Dataset Trade Network 
-    std::cout << "-> Cargando dataset Trade Network (Economia): " << std::endl;
+    std::cout << "===================================" << std::endl;
+    std::cout << "\n-> Cargando dataset Trade Network (Economia): " << std::endl;
     Grafo trade(true); // -> Dirigido
 
     auto inicioTrade = std::chrono::high_resolution_clock::now();
     if (cargarDataset(trade, "datasets/2000.net", true)) { 
+        MedidasCentralidad analizadorTrade(trade);
         auto finTrade = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> tiempoTrade = finTrade - inicioTrade;
 
@@ -109,16 +148,27 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << trade.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << trade.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoTrade.count() << " ms\n" << std::endl;
+
+        std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
+
+        // TEST    DEGREE   CENTRALITY
+        // Calcular In-Degree (Importadores) y Out-Degree (Exportadores)
+        std::vector<double> in_degree_trade = analizadorTrade.calcular_in_degree_centrality();
+        std::vector<double> out_degree_trade = analizadorTrade.calcular_out_degree_centrality();
+
+        DCentralityTop(trade, in_degree_trade, "In-Degree (Mayores Importadores/Destinos)");
+        DCentralityTop(trade, out_degree_trade, "Out-Degree (Mayores Exportadores/Origenes)");
     }
 
     std::cout << "===================================" << std::endl;
+
     return 0;
 }
 
 /*
 
 Para compilar:
-g++ -O3 main.cpp Grafo.cpp -o analisis_redes
+g++ -O3 main.cpp grafo.cpp MedidasCentralidad.cpp -o analisis_redes
 
 Ejecutar:
 ./analisis_redes

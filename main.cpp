@@ -131,6 +131,14 @@ int main() {
         // CALCULA DEGREE CENTRALITY
         std::vector<double> degree_yeast = analizadorYeast.calcular_degree_centrality();
         DCentralityTop(yeast, degree_yeast, "Degree Centrality (Hubs Proteicos)"); //imprime
+        
+        std::cout << "\n-- A V E R A G E  S H O R T E S T  P A T H -- " << std::endl;
+        // Calcula Average shortest path
+        auto inicioAvgYeast = std::chrono::high_resolution_clock::now();
+        double avg_path_yeast = analizadorYeast.calcular_average_shortest_path();
+        auto finAvgYeast = std::chrono::high_resolution_clock::now();
+        std::cout << "   [*] Largo promedio de la red: " << avg_path_yeast << std::endl;
+        std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgYeast - inicioAvgYeast).count() << " ms\n";
     }
 
     //Cargar Dataset Trade Network 
@@ -158,6 +166,14 @@ int main() {
 
         DCentralityTop(trade, in_degree_trade, "In-Degree (Mayores Importadores/Destinos)");
         DCentralityTop(trade, out_degree_trade, "Out-Degree (Mayores Exportadores/Origenes)");
+
+        std::cout << "\n-- A V E R A G E  S H O R T E S T  P A T H -- " << std::endl;
+        // Calcula Average shortest path 
+        auto inicioAvgTrade = std::chrono::high_resolution_clock::now();
+        double avg_path_trade = analizadorTrade.calcular_average_shortest_path();
+        auto finAvgTrade = std::chrono::high_resolution_clock::now();
+        std::cout << "   [*] Largo promedio de la red: " << avg_path_trade << std::endl;
+        std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgTrade - inicioAvgTrade).count() << " ms\n";
     }
 
     std::cout << "===================================" << std::endl;

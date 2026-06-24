@@ -4,6 +4,9 @@
 #include "grafo.h"
 #include <vector>
 #include <utility> //útil en HITS
+#include <queue>   // Añadido para Priority Queue (Dijkstra)
+#include <stack>   // Añadido para Brandes
+#include <limits>  // Añadido para el valor Infinito
 
 class MedidasCentralidad {
 private:
@@ -15,9 +18,9 @@ private:
 
     // MÉTODOS PRIVADOS AUXILIARES:
     // Aquí irán las funciones que se reutilizan en varias métricas
-    
-    //Calcula los caminos más cortos desde un nodo origen
-    // std::vector<double> calcular_distancias_dijkstra(int origen) const;
+
+    //Calcula los caminos más cortos desde un nodo origen para Average
+    std::vector<double> calcular_distancias_dijkstra(int origen) const;
     // std::vector<int> calcular_distancias_bfs(int origen) const;
 
 public:

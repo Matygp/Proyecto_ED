@@ -139,6 +139,15 @@ int main() {
         auto finAvgYeast = std::chrono::high_resolution_clock::now();
         std::cout << "   [*] Largo promedio de la red: " << avg_path_yeast << std::endl;
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgYeast - inicioAvgYeast).count() << " ms\n";
+        // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
+
+        std::cout << "\n-- B E T W E E N N E S S  C E N T R A L I T Y -- " << std::endl;
+        auto inicioBetwYeast = std::chrono::high_resolution_clock::now();
+        std::vector<double> betw_yeast = analizadorYeast.calcular_betweenness_centrality();
+        auto finBetwYeast = std::chrono::high_resolution_clock::now();
+        DCentralityTop(yeast, betw_yeast, "Betweenness (Cuellos de botella proteicos)");
+        std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwYeast - inicioBetwYeast).count() << " ms\n";
+        // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
     }
 
     //Cargar Dataset Trade Network 
@@ -174,6 +183,14 @@ int main() {
         auto finAvgTrade = std::chrono::high_resolution_clock::now();
         std::cout << "   [*] Largo promedio de la red: " << avg_path_trade << std::endl;
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgTrade - inicioAvgTrade).count() << " ms\n";
+        
+
+        std::cout << "\n-- B E T W E E N N E S S  C E N T R A L I T Y -- " << std::endl;
+        auto inicioBetwTrade = std::chrono::high_resolution_clock::now();
+        std::vector<double> betw_trade = analizadorTrade.calcular_betweenness_centrality();
+        auto finBetwTrade = std::chrono::high_resolution_clock::now();
+        DCentralityTop(trade, betw_trade, "Betweenness (Puntos criticos de comercio)");
+        std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwTrade - inicioBetwTrade).count() << " ms\n";
     }
 
     std::cout << "===================================" << std::endl;

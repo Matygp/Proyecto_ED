@@ -127,3 +127,77 @@ double MedidasCentralidad::calcular_average_shortest_path() const {
     if (caminos_validos == 0) return 0.0; // Evita división por cero si el grafo no tiene aristas
     return suma_distancias / caminos_validos;
 }
+
+std::vector<double> MedidasCentralidad::calcular_betweenness_centrality() const {
+    int V = grafo.obtener_num_vertices();
+    std::vector<double> betweenness(V, 0.0);
+
+    // Ejecutamos una variación de Dijkstra desde cada nodo 's'
+    for (int s = 0; s < V; ++s) {
+        std::stack<int> S;                     // Pila para procesar los nodos en orden inverso de distancia
+        std::vector<std::vector<int>> P(V);    // Lista de predecesores de cada nodo
+        std::vector<double> sigma(V, 0.0);     // Número de caminos más cortos desde 's'
+        sigma[s] = 1.0;
+        std::vector<double> d(V, std::numeric_limits<double>::infinity()); // Distancias
+        d[s] = 0.0;
+
+        // Min-Heap: {distancia, nodo}
+        std::priority_queue<std::pair<double, int>, std::vector<std::pair<double, int>>, std::greater<std::pair<double, int>>> pq;
+        pq.push({0.0, s});
+
+        while (!pq.empty()) {
+            double dist_u = pq.top().first;
+            int u = pq.top().second;
+            pq.pop();
+
+            if (dist_u > d[u]) continue;
+
+            S.push(u); // Se apila el nodo para la fase de acumulación
+
+            for (const Arista& arista : grafo.obtener_adyacentes_salientes(u)) {
+                int v = arista.destino;
+                double peso = arista.peso;
+
+                // 1. Se encontró un camino estrictamente más corto
+                if (d[u] + peso < d[v]) {
+                    d[v] = d[u] + peso;
+                    pq.push({d[v], v});
+                    sigma[v] = sigma[u];   // Reiniciamos el conteo de caminos
+                    P[v].clear();
+                    P[v].push_back(u);     // 'u' es el nuevo predecesor
+                }
+                // 2. Se encontró otro camino alternativo con la misma longitud mínima
+                else if (d[u] + peso == d[v]) {
+                    sigma[v] += sigma[u];  // Sumamos los caminos
+                    P[v].push_back(u);     // Añadimos 'u' como predecesor alternativo
+                }
+            }
+        }
+
+        // Fase de acumulación (Back-propagation)
+        std::vector<double> delta(V, 0.0);
+        while (!S.empty()) {
+            int w = S.top();
+            S.pop();
+            
+            for (int v : P[w]) { // v es predecesor de w
+                // Validamos división por cero en caso de imprecisiones de coma flotante
+                if (sigma[w] != 0) {
+                    delta[v] += (sigma[v] / sigma[w]) * (1.0 + delta[w]);
+                }
+            }
+            if (w != s) {
+                betweenness[w] += delta[w];
+            }
+        }
+    }
+
+    // Si el grafo es no dirigido, cada camino se contó dos veces (ida y vuelta), así que dividimos a la mitad
+    if (!grafo.comprobar_si_es_dirigido()) {
+        for (int i = 0; i < V; ++i) {
+            betweenness[i] /= 2.0;
+        }
+    }
+
+    return betweenness;
+}

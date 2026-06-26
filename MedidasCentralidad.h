@@ -37,7 +37,9 @@ public:
 
     //      MÉTRICAS BASADAS EN CAMINOS MÁS CORTOS
     std::vector<double> calcular_betweenness_centrality() const;
+
     std::vector<double> calcular_closeness_centrality() const;
+    std::vector<double> calcular_closeness_centrality_bfs() const;
     
     double calcular_average_shortest_path() const; //métrica global
 

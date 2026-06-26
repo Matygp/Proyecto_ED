@@ -108,7 +108,7 @@ void DCentralityTop(const Grafo& grafo, const std::vector<double>& centralidad, 
 }
 
 int main() {
-    std::cout << "===== PRUEBAS Y TEST COMPLETO =====\n\n";
+    std::cout << "========= PRUEBAS Y TESTEO =========\n\n";
 
     //Cargar Dataset Yeast 
     std::cout << "===================================" << std::endl;
@@ -125,7 +125,7 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << yeast.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << yeast.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoYeast.count() << " ms\n" << std::endl;
-
+/*
         std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
 
         // CALCULA DEGREE CENTRALITY
@@ -148,6 +148,20 @@ int main() {
         DCentralityTop(yeast, betw_yeast, "Betweenness (Cuellos de botella proteicos)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwYeast - inicioBetwYeast).count() << " ms\n";
         // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
+*/
+        // probando closeness en yeast (al tener tantos nodos, demora varios minutos)
+        std::cout << "\n[!] Calculando Closeness Centrality (Version BFS):\n";
+        
+        auto inicioCloseYeast = std::chrono::high_resolution_clock::now();
+        
+        // se llama explícitamente a la versión _bfs
+        std::vector<double> closeness_yeast = analizadorYeast.calcular_closeness_centrality_bfs();
+        
+        auto finCloseYeast = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoCloseYeast = finCloseYeast - inicioCloseYeast;
+
+        DCentralityTop(yeast, closeness_yeast, "Closeness Centrality (Proteinas Centrales)");
+        std::cout << "    (Tiempo de calculo: " << tiempoCloseYeast.count() << " ms)\n";
     }
 
     //Cargar Dataset Trade Network 
@@ -166,8 +180,8 @@ int main() {
         std::cout << "   [*] Numero de aristas (E) : " << trade.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoTrade.count() << " ms\n" << std::endl;
 
-        std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
-
+        //std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
+/*
         // TEST    DEGREE   CENTRALITY
         // Calcular In-Degree (Importadores) y Out-Degree (Exportadores)
         std::vector<double> in_degree_trade = analizadorTrade.calcular_in_degree_centrality();
@@ -184,13 +198,29 @@ int main() {
         std::cout << "   [*] Largo promedio de la red: " << avg_path_trade << std::endl;
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgTrade - inicioAvgTrade).count() << " ms\n";
         
-
         std::cout << "\n-- B E T W E E N N E S S  C E N T R A L I T Y -- " << std::endl;
         auto inicioBetwTrade = std::chrono::high_resolution_clock::now();
         std::vector<double> betw_trade = analizadorTrade.calcular_betweenness_centrality();
         auto finBetwTrade = std::chrono::high_resolution_clock::now();
         DCentralityTop(trade, betw_trade, "Betweenness (Puntos criticos de comercio)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwTrade - inicioBetwTrade).count() << " ms\n";
+*/
+        //Closeness Centrality
+        std::cout << "\n[!] Calcula Closeness Centrality:\n";
+        
+        // Se inicia el cronómetro
+        auto inicioClose = std::chrono::high_resolution_clock::now();
+        
+        // Se llama a la función 
+        std::vector<double> closeness = analizadorTrade.calcular_closeness_centrality();
+        
+        // Detiene cronómetro
+        auto finClose = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoClose = finClose - inicioClose;
+
+        // Imprime el Top 5
+        DCentralityTop(trade, closeness, "Closeness Centrality (Nodos mas interconectados)");
+        std::cout << "    (Tiempo de calculo: " << tiempoClose.count() << " ms)\n";
     }
 
     std::cout << "===================================" << std::endl;

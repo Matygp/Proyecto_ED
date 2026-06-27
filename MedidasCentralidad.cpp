@@ -460,3 +460,149 @@ MedidasCentralidad::calcular_hits(int max_iter, double tol) const {
     return {hub, auth};
 }
 // -fin de HITS-
+
+// ================================================================
+//   C O R E N E S S   (Descomposición K-Core via Peeling)
+//
+// Implementa el algoritmo de peeling iterativo de Batagelj & Zaversnik
+// usando un Min-Heap binario con eliminación perezosa (lazy deletion).
+//
+// DEFINICIÓN: coreness(v) = mayor k tal que v pertenece al k-core,
+// donde un k-core es el subgrafo maximal inducido en el que todo
+// vértice tiene grado >= k (dentro del propio subgrafo).
+//
+// ALGORITMO:
+//   Se simula la eliminación iterativa del vértice de menor grado.
+//   Cuando se extrae u con grado d, su coreness es max(d, max_k_previo):
+//   si d < max_k es porque sus vecinos de mayor shell ya fueron pelados
+//   y redujeron su grado, pero u sigue perteneciendo a ese mismo shell.
+//   Al eliminar u, los grados de sus vecinos vivos se reducen en 1 y se
+//   reinyectan en el heap con su nuevo grado.
+//
+// COMPLEJIDAD REAL con heap binario y lazy deletion:
+//   O((V + E) log V)  →  equivale a O(V log V + E) para E = O(V)
+//   (Para O(V + E) exacto se requeriría una bucket-queue de ancho max_k)
+// ================================================================
+std::vector<int> MedidasCentralidad::calcular_coreness() const {
+
+    int V = grafo.obtener_num_vertices();
+    std::vector<int> coreness(V, 0);   // resultado: coreness[i] del nodo i
+    if (V == 0) return coreness;
+
+    const bool dirigido = grafo.comprobar_si_es_dirigido();
+
+    // ---------------------------------------------------------------
+    // PASO 1 — Grados iniciales (pre-asignados en O(V))
+    //
+    // No dirigido → grado(v) = |salientes(v)|           (grado clásico)
+    // Dirigido    → grado(v) = |salientes| + |entrantes| (grado total)
+    //
+    // El branch está FUERA del bucle de aristas: coste O(1) por nodo,
+    // no O(1) por arista → sin overhead en el hot path de E iteraciones.
+    // ---------------------------------------------------------------
+    std::vector<int> grado(V, 0);
+    for (int i = 0; i < V; ++i) {
+        grado[i] = static_cast<int>(grafo.obtener_adyacentes_salientes(i).size());
+        if (dirigido) {
+            grado[i] += static_cast<int>(grafo.obtener_adyacentes_entrantes(i).size());
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // PASO 2 — Construcción del Min-Heap
+    //
+    // std::priority_queue usa por defecto un max-heap (std::less).
+    // El tercer parámetro std::greater<Par> invierte el comparador de
+    // std::pair, que ordena primero por el campo .first (el grado):
+    // el par {grado_menor, id} queda en la cima → comportamiento min-heap.
+    //
+    // Lazy deletion: NO se implementa decrease-key (no disponible en
+    // std::priority_queue). En su lugar, se re-inserta una nueva entrada
+    // {grado_reducido, v} cada vez que el grado de v decrece. Las entradas
+    // obsoletas (con grado mayor) quedan huérfanas en el heap y se
+    // descartan al extraerlas usando el vector 'eliminado' como guardia.
+    //
+    // Consecuencia: el heap puede contener hasta O(V + 2E) entradas totales
+    // (V iniciales + a lo sumo 2E re-inserciones para grafos dirigidos),
+    // pero cada extracción es O(log(V + 2E)) = O(log V).
+    // ---------------------------------------------------------------
+    using Par = std::pair<int, int>;  // {grado_actual, id_interno}
+    std::priority_queue<Par, std::vector<Par>, std::greater<Par>> min_heap;
+
+    for (int i = 0; i < V; ++i) {
+        min_heap.push({grado[i], i});
+    }
+
+    // ---------------------------------------------------------------
+    // PASO 3 — Peeling iterativo con lazy deletion
+    //
+    // INVARIANTE DEL HEAP: cuando un nodo v tiene múltiples entradas
+    // en el heap, la de menor grado es la más reciente (la actual).
+    // Al ser un min-heap, esa entrada siempre se extrae PRIMERO, por lo
+    // que la primera extracción de v corresponde a su grado mínimo real.
+    // Las extracciones posteriores de v (con grado mayor = entradas
+    // obsoletas) se descartan en O(log N_heap) vía 'eliminado[v] == true'.
+    //
+    // INVARIANTE DE max_k: max_k solo crece (o se mantiene). Si al
+    // extraer u con grado d ocurre que d < max_k, significa que u fue
+    // "empujado hacia abajo" por la eliminación de sus vecinos, pero
+    // matemáticamente sigue perteneciendo al shell max_k (es alcanzado
+    // por el k-core inducido por los nodos del shell actual). Por eso
+    // coreness[u] = max_k, no d.
+    // ---------------------------------------------------------------
+    std::vector<bool> eliminado(V, false);
+    int max_k = 0;
+
+    while (!min_heap.empty()) {
+        const auto [grado_extraido, u] = min_heap.top();
+        min_heap.pop();
+
+        // Entrada obsoleta: 'u' ya fue procesado con un grado menor.
+        // Costo: un pop O(log N_heap) y un acceso O(1) al vector booleano.
+        if (eliminado[u]) continue;
+
+        // Primera (y única) extracción válida de u:
+        // grado_extraido == grado[u] actual (garantizado por el min-heap).
+        max_k        = std::max(max_k, grado_extraido);
+        coreness[u]  = max_k;
+        eliminado[u] = true;
+
+        // ---------------------------------------------------------------
+        // PASO 4 — Propagación del peeling a vecinos vivos
+        //
+        // La lambda encapsula la actualización y se reutiliza para las
+        // listas saliente y entrante, eliminando el branching POR ARISTA.
+        //
+        // Para cada vecino vivo v de u:
+        //   · --grado[v]: simula la desaparición de u del grafo virtual.
+        //   · min_heap.push({grado[v], v}): re-inserta v con su nuevo
+        //     grado. La entrada anterior {grado_viejo, v} queda obsoleta
+        //     y será descartada por el guardia 'eliminado' cuando emerja.
+        //     NO se llama si eliminado[v] para evitar decrementos sobre
+        //     nodos ya asignados y entradas basura innecesarias en el heap.
+        // ---------------------------------------------------------------
+        auto actualizar_vecino = [&](int v) noexcept {
+            if (!eliminado[v]) {
+                min_heap.push({--grado[v], v});
+            }
+        };
+
+        // Vecinos salientes: out-neighbors en grafos dirigidos;
+        // todos los vecinos en grafos no dirigidos (lista simétrica).
+        for (const Arista& arista : grafo.obtener_adyacentes_salientes(u)) {
+            actualizar_vecino(arista.destino);
+        }
+
+        // Solo grafos dirigidos: in-neighbors de u pierden un enlace
+        // saliente al desaparecer u, lo que reduce su grado total en 1.
+        // Branch fuera del bucle interno → cero overhead por arista.
+        if (dirigido) {
+            for (const Arista& arista : grafo.obtener_adyacentes_entrantes(u)) {
+                actualizar_vecino(arista.destino);  // arista.destino = w donde w→u
+            }
+        }
+    }
+
+    return coreness;
+}
+// -fin de coreness-

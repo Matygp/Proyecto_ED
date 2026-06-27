@@ -71,6 +71,9 @@ public:
     */
     std::pair<std::vector<double>, std::vector<double>> calcular_hits(int max_iter = 100, double tol = 1e-6) const;
 
+
+    // K-Core Decomposition (Coreness)
+    std::vector<int> calcular_coreness() const;
 };
 
 #endif // MEDIDAS_CENTRALIDAD_H

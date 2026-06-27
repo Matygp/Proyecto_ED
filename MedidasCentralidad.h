@@ -50,7 +50,26 @@ public:
     std::vector<double> calcular_pagerank(double d = 0.85, double tolerancia = 1e-6, int max_iteraciones = 100) const;
 
 
-    // vvv AQUI FALTARÍA HITS Y KCORE, QUE NO SE COMO FUNCIONAN vvv
+    /*
+    HITS (Hyperlink-Induced Topic Search)
+    Retorna un par de vectores: { hub_scores, authority_scores }.
+
+    - Authority score de i: qué tan relevante es i como DESTINO.
+      Se incrementa cuando i recibe enlaces de nodos con alto hub score.
+
+    - Hub score de i: qué tan relevante es i como ORIGEN.
+      Se incrementa cuando i apunta a nodos con alto authority score.
+
+    Parámetros:
+      max_iter  → número máximo de iteraciones Power Iteration (default: 100)
+      tol       → umbral de convergencia sobre la suma de diferencias absolutas
+                  de ambos vectores entre iteraciones consecutivas (default: 1e-6)
+
+    Para grafos no dirigidos (Yeast): ambas listas de adyacencia son simétricas,
+    por lo que hub y authority convergen al mismo autovector (equivalente a
+    Eigenvector Centrality). Esto es matemáticamente correcto y esperado.
+    */
+    std::pair<std::vector<double>, std::vector<double>> calcular_hits(int max_iter = 100, double tol = 1e-6) const;
 
 };
 

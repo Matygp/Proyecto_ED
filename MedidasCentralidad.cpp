@@ -1,6 +1,7 @@
 #include "MedidasCentralidad.h"
 #include <queue>
 #include <limits>
+#include <cmath>  // std::sqrt, std::abs (para HITS)
 
 // CONSTRUCTOR: Se inicializa la referencia constante al grafo usando 
 //una lista de inicialización
@@ -322,3 +323,140 @@ std::vector<double> MedidasCentralidad::calcular_closeness_centrality_bfs() cons
     return closeness;
 }
 // -fin de closeness centrality-
+
+
+// ================================================================
+//       H I T S   (Hyperlink-Induced Topic Search) — Ponderado
+//
+// Implementa el algoritmo de Power Iteration de Kleinberg (1999).
+//
+// Intuición:
+//   Un buen HUB apunta (con peso) a muchas buenas AUTORIDADES.
+//   Una buena AUTORIDAD es apuntada (con peso) por muchos buenos HUBS.
+//
+// Retorna: std::pair { hub_scores, authority_scores }
+//   → first  = vector de Hub Scores      (quién apunta bien)
+//   → second = vector de Authority Scores (quién es bien apuntado)
+//
+// Para grafos no dirigidos (Yeast): al ser la matriz de adyacencia
+// simétrica, los puntajes hub y authority convergen al mismo autovector
+// dominante, equivalente matemáticamente a Eigenvector Centrality.
+// ================================================================
+std::pair<std::vector<double>, std::vector<double>>
+MedidasCentralidad::calcular_hits(int max_iter, double tol) const {
+
+    int V = grafo.obtener_num_vertices();
+
+    // Inicialización uniforme: todos los nodos arrancan con score 1.0.
+    // La primera normalización euclidiana los llevará automáticamente a 1/sqrt(V).
+    std::vector<double> hub(V, 1.0);
+    std::vector<double> auth(V, 1.0);
+
+    // Caso borde: grafo vacío o de un solo nodo, nada que propagar
+    if (V <= 1) return {hub, auth};
+
+    // Buffers de trabajo pre-asignados FUERA del loop principal.
+    // Evita realocaciones de memoria en el "hot path" iterativo.
+    std::vector<double> hub_nuevo(V, 0.0);
+    std::vector<double> auth_nuevo(V, 0.0);
+
+    for (int iter = 0; iter < max_iter; ++iter) {
+
+        // Limpiar buffers de la iteración actual (fill es O(V), sin alloc)
+        std::fill(hub_nuevo.begin(),  hub_nuevo.end(),  0.0);
+        std::fill(auth_nuevo.begin(), auth_nuevo.end(), 0.0);
+
+        // ---------------------------------------------------------------
+        // FASE 1 — Actualización de AUTHORITY (sincrónica, ponderada)
+        //
+        //   a_nuevo[i] = Σ w(predecesor→i) · hub[predecesor]   ∀ predecesor : predecesor→i
+        //
+        // Acceso: obtener_adyacentes_entrantes(i) devuelve la lista
+        // inversa. En nuestro ADT, arista.destino representa el nodo
+        // ORIGEN de la arista entrante (el que apunta hacia i), por lo
+        // que se desempaqueta explícitamente como 'predecesor' para
+        // evitar la confusión semántica que genera leer "destino" cuando
+        // el rol lógico del nodo es el de fuente/origen.
+        // Para Trade Network: w(predecesor→i) es el volumen exportado
+        // por 'predecesor' hacia 'i', amplificando la autoridad de los
+        // países que reciben flujos comerciales de alta intensidad.
+        // ---------------------------------------------------------------
+        for (int i = 0; i < V; ++i) {
+            for (const Arista& arista : grafo.obtener_adyacentes_entrantes(i)) {
+                const int predecesor = arista.destino; // j: nodo que apunta hacia i
+                auth_nuevo[i] += arista.peso * hub[predecesor];
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // FASE 2 — Actualización de HUB (sincrónica, ponderada)
+        //
+        //   h_nuevo[i] = Σ w(i→sucesor) · auth[sucesor]   ∀ sucesor : i→sucesor
+        //
+        // Acceso: obtener_adyacentes_salientes(i) devuelve la lista
+        // directa. arista.destino = sucesor (el nodo al que i apunta).
+        // CLAVE: ambas fases usan los valores del paso k-1 (hub y auth
+        // sin actualizar), garantizando actualización SINCRÓNICA.
+        // Para Trade Network: w(i→sucesor) es el volumen exportado por
+        // 'i' hacia 'sucesor', amplificando el hub de los exportadores
+        // que dirigen grandes flujos hacia buenas autoridades-destino.
+        // ---------------------------------------------------------------
+        for (int i = 0; i < V; ++i) {
+            for (const Arista& arista : grafo.obtener_adyacentes_salientes(i)) {
+                const int sucesor = arista.destino; // j: nodo al que i apunta
+                hub_nuevo[i] += arista.peso * auth[sucesor];
+            }
+        }
+
+        // ---------------------------------------------------------------
+        // FASE 3 — Normalización por NORMA EUCLIDIANA
+        //
+        // Mantiene los vectores acotados (||v||₂ = 1) y hace comparables
+        // los puntajes entre nodos y entre iteraciones.
+        // Se calculan ambas normas en un solo recorrido conjunto.
+        // ---------------------------------------------------------------
+        double norma_auth = 0.0;
+        double norma_hub  = 0.0;
+
+        for (int i = 0; i < V; ++i) {
+            norma_auth += auth_nuevo[i] * auth_nuevo[i];
+            norma_hub  += hub_nuevo[i]  * hub_nuevo[i];
+        }
+        norma_auth = std::sqrt(norma_auth);
+        norma_hub  = std::sqrt(norma_hub);
+
+        // Protección ante grafos sin aristas o componentes totalmente aislados
+        if (norma_auth > 0.0) {
+            for (int i = 0; i < V; ++i) auth_nuevo[i] /= norma_auth;
+        }
+        if (norma_hub > 0.0) {
+            for (int i = 0; i < V; ++i) hub_nuevo[i]  /= norma_hub;
+        }
+
+        // ---------------------------------------------------------------
+        // FASE 4 — Criterio de parada por CONVERGENCIA
+        //
+        //   delta = Σ|a_nuevo[i] - a_ant[i]| + Σ|h_nuevo[i] - h_ant[i]|
+        //
+        // Suma las diferencias absolutas de AMBOS vectores respecto al
+        // paso anterior (k-1), acumuladas en un único escalar.
+        // Si delta < tol, los puntajes ya no cambian significativamente.
+        // ---------------------------------------------------------------
+        double delta = 0.0;
+        for (int i = 0; i < V; ++i) {
+            delta += std::abs(auth_nuevo[i] - auth[i]);
+            delta += std::abs(hub_nuevo[i]  - hub[i]);
+        }
+
+        // Intercambio de buffers O(1): los vectores "nuevo" pasan a ser
+        // los "actuales" para la siguiente iteración sin copiar memoria.
+        hub.swap(hub_nuevo);
+        auth.swap(auth_nuevo);
+
+        if (delta < tol) break;
+    }
+
+    // Retorna el par { hub_scores, authority_scores }
+    return {hub, auth};
+}
+// -fin de HITS-

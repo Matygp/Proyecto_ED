@@ -179,8 +179,9 @@ int main() {
         DCentralityTop(yeast, betw_yeast, "Betweenness (Cuellos de botella proteicos)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwYeast - inicioBetwYeast).count() << " ms\n";
         // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
-*/
-        // probando closeness en yeast (al tener tantos nodos, demora varios minutos)
+
+
+        // ─────────────── probando CLOSENESS en yeast ─────────────────────
         std::cout << "\n[!] Calculando Closeness Centrality (Version BFS):\n";
         
         auto inicioCloseYeast = std::chrono::high_resolution_clock::now();
@@ -206,6 +207,20 @@ int main() {
 
         DCoreTop(yeast, coreness_yeast, "Coreness (Proteinas en el nucleo de la red)");
         std::cout << "    (Tiempo de calculo: " << tiempoCoreYeast.count() << " ms)\n";
+    */
+
+        //─────────────────── PAGERANK TESTING ───────────────────
+        std::cout << "\n[!] Test PageRank\n";
+        auto inicioPR = std::chrono::high_resolution_clock::now();
+
+        //Usa los valores por defecto (d=0.85, tol=1e-6)
+        std::vector<double> pagerank = analizadorYeast.calcular_pagerank(); 
+
+        auto finPR = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoPR = finPR - inicioPR;
+
+        DCentralityTop(yeast, pagerank, "PageRank");
+        std::cout << "    (Tiempo de calculo: " << tiempoPR.count() << " ms)\n";
     }
 
     //Cargar Dataset Trade Network 
@@ -214,7 +229,7 @@ int main() {
     Grafo trade(true); // -> Dirigido
 
     auto inicioTrade = std::chrono::high_resolution_clock::now();
-    if (cargarDataset(trade, "datasets/2000.net", true)) { 
+    if (cargarDataset(trade, "datasets/2005.net", true)) { 
         MedidasCentralidad analizadorTrade(trade);
         auto finTrade = std::chrono::high_resolution_clock::now();
         std::chrono::duration<double, std::milli> tiempoTrade = finTrade - inicioTrade;
@@ -248,7 +263,7 @@ int main() {
         auto finBetwTrade = std::chrono::high_resolution_clock::now();
         DCentralityTop(trade, betw_trade, "Betweenness (Puntos criticos de comercio)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwTrade - inicioBetwTrade).count() << " ms\n";
-*/
+
         //Closeness Centrality
         std::cout << "\n[!] Calcula Closeness Centrality:\n";
         
@@ -295,6 +310,19 @@ int main() {
 
         DCoreTop(trade, coreness_trade, "Coreness (Nucleo de la red comercial global)");
         std::cout << "    (Tiempo de calculo: " << tiempoCoreTrade.count() << " ms)\n";
+        */
+        //─────────────────── PAGERANK TESTING ───────────────────
+        std::cout << "\n[!] Test PageRank\n";
+        auto inicioPR = std::chrono::high_resolution_clock::now();
+
+        //Usa los valores por defecto (d=0.85, tol=1e-6)
+        std::vector<double> pagerank = analizadorTrade.calcular_pagerank(); 
+
+        auto finPR = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoPR = finPR - inicioPR;
+
+        DCentralityTop(trade, pagerank, "PageRank");
+        std::cout << "    (Tiempo de calculo: " << tiempoPR.count() << " ms)\n";
     }
 
     std::cout << "===================================" << std::endl;

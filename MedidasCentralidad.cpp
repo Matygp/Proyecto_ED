@@ -2,6 +2,7 @@
 #include <queue>
 #include <limits>
 #include <cmath>  // std::sqrt, std::abs (para HITS)
+#include <cmath> 
 
 // CONSTRUCTOR: Se inicializa la referencia constante al grafo usando 
 //una lista de inicialización
@@ -323,6 +324,73 @@ std::vector<double> MedidasCentralidad::calcular_closeness_centrality_bfs() cons
     return closeness;
 }
 // -fin de closeness centrality-
+
+//                            P A G E   R A N K
+
+std::vector<double> MedidasCentralidad::calcular_pagerank(double d, double tolerancia, int max_iteraciones) const {
+    int V = grafo.obtener_num_vertices();
+    
+    //Se inicializa, repartimos el prestigio inicial equitativamente (1/V)
+    std::vector<double> pr(V, 1.0 / V);
+    
+    if (V <= 1) return pr;
+
+    // Pre-calcular grados de salida (Out-Degree) para máxima optimización
+    //esto evita llamar a .size() millones de veces dentro del bucle principal
+    std::vector<int> out_degree(V, 0);
+    for (int i = 0; i < V; ++i) {
+        out_degree[i] = grafo.obtener_adyacentes_salientes(i).size();
+    }
+
+    std::vector<double> nuevo_pr(V, 0.0);
+
+    for (int iter = 0; iter < max_iteraciones; ++iter) { //Bucle de Iteración de Potencias
+        double dangling_sum = 0.0;
+        
+        /* 
+        A) Manejo de Sumideros (conocidos "Dangling Nodes").
+         Son nodos que no apuntan a nadie. Si el flujo cae aquí, se perdería.
+         Solución matemática: su prestigio se redistribuye a toda la red equitativamente.
+        */
+        for (int i = 0; i < V; ++i) {
+            if (out_degree[i] == 0) {
+                dangling_sum += pr[i];
+            }
+        }
+
+        double diferencia_total = 0.0;
+
+       // B) Calcular el nuevo PageRank para cada nodo
+        for (int i = 0; i < V; ++i) {
+            double suma_entrante = 0.0;
+
+            //Aprovechamos su lista inversa hiper-optimizada para ver quién apunta a 'i'
+            for (const auto& arista : grafo.obtener_adyacentes_entrantes(i)) {
+                //En la lista inversa, 'destino' realmente almacena el índice del origen (u -> i)
+                int origen = arista.destino; 
+                suma_entrante += pr[origen] / out_degree[origen];
+            }
+
+            // Fórmula de PageRank: Probabilidad de Salto Aleatorio (Teletransportación) + Flujo Orgánico
+            nuevo_pr[i] = ((1.0 - d) / V) + d * (suma_entrante + (dangling_sum / V));
+            
+            // Se mide cuánto cambió el valor respecto a la iteración anterior
+            diferencia_total+= std::abs(nuevo_pr[i] - pr[i]);
+        }
+
+        // C) Actualizar el vector maestro
+        pr = nuevo_pr;
+
+        // D) Criterio de Convergencia
+        //Si el sistema se estabilizó y la diferencia es minúscula, detenemos el bucle temprano
+        if (diferencia_total < tolerancia) {
+            // std::cout << "PageRank convergio en " << iter + 1 << " iteraciones.\n";
+            break;
+        }
+    }
+
+    return pr;
+}
 
 
 // ================================================================

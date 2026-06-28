@@ -1,5 +1,5 @@
 #include "grafo.h"
-
+#include <algorithm>
 // Constructor
 Grafo::Grafo(bool dirigido) {
     this->es_dirigido = dirigido;
@@ -86,4 +86,47 @@ const std::vector<Arista>& Grafo::obtener_adyacentes_salientes(int id_interno) c
 */
 const std::vector<Arista>& Grafo::obtener_adyacentes_entrantes(int id_interno) const {
     return lista_adyacencia_inversa[id_interno];
+
+/*
+Elimina una arista del grafo. Utiliza el idioma Erase-Remove para 
+mantener la eficiencia de memoria contigua en std::vector.
+*/
+
+}
+
+
+/*
+Elimina una arista del grafo. Utiliza el idioma Erase-Remove para 
+mantener la eficiencia de memoria contigua en std::vector.
+*/
+void Grafo::remover_arista(const std::string& origen_externo, const std::string& destino_externo) {
+    // 1. Buscar si los nodos existen en el mapa
+    auto it_u = id_externo_a_interno.find(origen_externo);
+    auto it_v = id_externo_a_interno.find(destino_externo);
+
+    // Si alguno de los dos nodos no existe, no hay nada que borrar
+    if (it_u == id_externo_a_interno.end() || it_v == id_externo_a_interno.end()) {
+        return; 
+    }
+
+    int u = it_u->second;
+    int v = it_v->second;
+
+    // Lambda auxiliar para borrar por ID de destino en un vector específico
+    auto borrar_por_destino = [](std::vector<Arista>& vec, int dest) {
+        vec.erase(std::remove_if(vec.begin(), vec.end(), 
+            [dest](const Arista& a) { return a.destino == dest; }), vec.end());
+    };
+
+    // 2. Borrar de la lista directa e inversa
+    borrar_por_destino(lista_adyacencia[u], v);
+    borrar_por_destino(lista_adyacencia_inversa[v], u);
+
+    // 3. Si es no dirigido, borrar también la conexión de retorno
+    if (!es_dirigido) {
+        borrar_por_destino(lista_adyacencia[v], u);
+        borrar_por_destino(lista_adyacencia_inversa[u], v);
+    }
+    
+    num_aristas--; 
 }

@@ -1,4 +1,5 @@
 #include "grafo.h"
+#include <algorithm>
 
 // Constructor
 Grafo::Grafo(bool dirigido) {
@@ -52,6 +53,39 @@ void Grafo::agregar_arista(const std::string& origen_externo, const std::string&
     }
 
     num_aristas++;
+}
+
+void Grafo::remover_arista(const std::string& origen_externo, const std::string& destino_externo) {
+    // 1. Buscamos los índices internos
+    auto it_u = id_externo_a_interno.find(origen_externo);
+    auto it_v = id_externo_a_interno.find(destino_externo);
+
+    // Si alguno de los nodos no existe, no hay arista que borrar
+    if (it_u == id_externo_a_interno.end() || it_v == id_externo_a_interno.end()) {
+        return; 
+    }
+
+    int u = it_u->second;
+    int v = it_v->second;
+
+    // 2. Removemos u -> v de las listas de adyacencia
+    auto& ady_u = lista_adyacencia[u];
+    ady_u.erase(std::remove_if(ady_u.begin(), ady_u.end(), [v](const Arista& a) { return a.destino == v; }), ady_u.end());
+
+    auto& ady_inv_v = lista_adyacencia_inversa[v];
+    ady_inv_v.erase(std::remove_if(ady_inv_v.begin(), ady_inv_v.end(), [u](const Arista& a) { return a.destino == u; }), ady_inv_v.end());
+
+    // 3. Si el grafo es no dirigido, también removemos el camino de vuelta (v -> u)
+    if (!es_dirigido) {
+        auto& ady_v = lista_adyacencia[v];
+        ady_v.erase(std::remove_if(ady_v.begin(), ady_v.end(), [u](const Arista& a) { return a.destino == u; }), ady_v.end());
+
+        auto& ady_inv_u = lista_adyacencia_inversa[u];
+        ady_inv_u.erase(std::remove_if(ady_inv_u.begin(), ady_inv_u.end(), [v](const Arista& a) { return a.destino == v; }), ady_inv_u.end());
+    }
+    
+    // Disminuimos el contador global
+    num_aristas--;
 }
 
 // === METODOS DE CONSULTA ===

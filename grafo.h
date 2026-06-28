@@ -37,6 +37,7 @@ public:
     // Métodos principales del ADT
     void agregar_vertice(const std::string& id_externo);
     void agregar_arista(const std::string& origen_externo, const std::string& destino_externo, double peso = 1.0);
+    void remover_arista(const std::string& origen_externo, const std::string& destino_externo);
 
     // Métodos de consulta esenciales
     int obtener_num_vertices() const;

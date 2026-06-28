@@ -106,6 +106,97 @@ void DCentralityTop(const Grafo& grafo, const std::vector<double>& centralidad, 
                   << " | Puntaje: " << std::fixed << std::setprecision(4) << ranking[i].second << "\n";
     }
 }
+// void ejecutar_experimento_perturbacion(Grafo& grafo) {
+//     std::cout << "\n=============================================\n";
+//     std::cout << "   E X P E R I M E N T O   A D I C I O N A L\n";
+//     std::cout << "=============================================\n";
+    
+//     MedidasCentralidad analizador(grafo);
+
+//     // --- ESTADO BASE ---
+//     std::cout << "\n[0] ESTADO ORIGINAL (Betweenness)" << std::endl;
+//     std::vector<double> base_betw = analizador.calcular_betweenness_centrality();
+//     DCentralityTop(grafo, base_betw, "Original");
+
+//     // --- EXPERIMENTO 1: AÑADIR ARISTA ESTRATÉGICA ---
+//     // Conectamos directamente dos nodos que antes daban mucha vuelta
+//     std::cout << "\n[1] ANADIENDO ARISTA (Ej: CHL -> COM)" << std::endl;
+//     grafo.agregar_arista("CHL", "COM", 1.0); 
+    
+//     std::vector<double> exp1_betw = analizador.calcular_betweenness_centrality();
+//     DCentralityTop(grafo, exp1_betw, "Con Arista Nueva");
+    
+//     // (Importante: Deshacer el cambio para el siguiente experimento)
+//     grafo.remover_arista("CHL", "COM");
+
+//     // --- EXPERIMENTO 2: QUITAR ARISTA ESTRATÉGICA ---
+//     // Cortamos la comunicación de un hub importantísimo
+//     std::cout << "\n[2] QUITANDO ARISTA CRITICA (Ej: GBR -> USA)" << std::endl;
+//     grafo.remover_arista("GBR", "USA");
+    
+//     std::vector<double> exp2_betw = analizador.calcular_betweenness_centrality();
+//     DCentralityTop(grafo, exp2_betw, "Sin Arista Critica");
+
+//     // Restauramos el grafo a su estado original
+//     grafo.agregar_arista("GBR", "USA", 1.0);
+// }
+
+void ejecutar_experimento_perturbacion(Grafo& grafo) {
+    std::cout << "\n=============================================\n";
+    std::cout << "   E X P E R I M E N T O  A D I C I O N A L\n";
+    std::cout << "=============================================\n";
+    
+    MedidasCentralidad analizador(grafo);
+
+    std::cout << "\n[0] ESTADO ORIGINAL (Top 5 Betweenness)" << std::endl;
+    std::vector<double> base_betw = analizador.calcular_betweenness_centrality();
+    DCentralityTop(grafo, base_betw, "Original");
+
+    // Obtenemos el índice de COM para ver su caída exacta en los puntajes
+    int id_com = -1;
+    for(int i = 0; i < grafo.obtener_num_vertices(); i++) {
+        if(grafo.mapear_a_externo(i) == "COM") { id_com = i; break; }
+    }
+
+    // --- EXPERIMENTO 1: EL BYPASS (Añadir aristas estratégicas) ---
+    std::cout << "\n[1] ANADIENDO UN 'BYPASS' GLOBAL (Conectando el resto del Top 5)" << std::endl;
+    
+    // Conectamos a Burkina Faso (BFA), Barbados (BRB), Tanzania (TZA) y Bulgaria (BGR) entre sí
+    grafo.agregar_arista("BFA", "BRB", 1.0);
+    grafo.agregar_arista("TZA", "BGR", 1.0);
+    grafo.agregar_arista("BFA", "TZA", 1.0); 
+
+    std::vector<double> exp1_betw = analizador.calcular_betweenness_centrality();
+    DCentralityTop(grafo, exp1_betw, "Con Bypass (COM deberia desplomarse)");
+    if(id_com != -1) {
+        std::cout << " -> El puntaje de COM cayo a: " << std::fixed << std::setprecision(4) << exp1_betw[id_com] << "\n";
+    }
+
+    // (Importante: Deshacemos el bypass para aislar el siguiente experimento)
+    grafo.remover_arista("BFA", "BRB");
+    grafo.remover_arista("TZA", "BGR");
+    grafo.remover_arista("BFA", "TZA");
+
+
+    // --- EXPERIMENTO 2: AISLAR AL REY (Quitar aristas vitales) ---
+    std::cout << "\n[2] QUITANDO ARISTAS DE ABASTECIMIENTO A COM (FRA, USA, GBR -> COM)" << std::endl;
+    
+    // La función remover_arista es segura: si la arista no existe, simplemente no hace nada.
+    grafo.remover_arista("FRA", "COM");
+    grafo.remover_arista("USA", "COM");
+    grafo.remover_arista("GBR", "COM");
+    
+    std::vector<double> exp2_betw = analizador.calcular_betweenness_centrality();
+    DCentralityTop(grafo, exp2_betw, "Sin Aristas Vitales hacia COM");
+    if(id_com != -1) {
+        std::cout << " -> El puntaje de COM cayo a: " << std::fixed << std::setprecision(4) << exp2_betw[id_com] << "\n";
+    }
+
+    // Restauramos el grafo a su estado original (asumiendo peso 1.0 por defecto)
+    grafo.agregar_arista("FRA", "COM", 1.0);
+    grafo.agregar_arista("USA", "COM", 1.0);
+    grafo.agregar_arista("GBR", "COM", 1.0);
+}
 
 /*
 Imprime el TOP 5 de nodos ordenados por su K-Shell (coreness).
@@ -156,7 +247,7 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << yeast.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << yeast.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoYeast.count() << " ms\n" << std::endl;
-/*
+
         std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
 
         // CALCULA DEGREE CENTRALITY
@@ -179,7 +270,7 @@ int main() {
         DCentralityTop(yeast, betw_yeast, "Betweenness (Cuellos de botella proteicos)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwYeast - inicioBetwYeast).count() << " ms\n";
         // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
-*/
+
         // probando closeness en yeast (al tener tantos nodos, demora varios minutos)
         std::cout << "\n[!] Calculando Closeness Centrality (Version BFS):\n";
         
@@ -224,10 +315,10 @@ int main() {
         std::cout << "   [*] Numero de aristas (E) : " << trade.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoTrade.count() << " ms\n" << std::endl;
 
-        //std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
-/*
-        // TEST    DEGREE   CENTRALITY
-        // Calcular In-Degree (Importadores) y Out-Degree (Exportadores)
+        std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
+
+       // TEST    DEGREE   CENTRALITY 
+       //Calcular In-Degree (Importadores) y Out-Degree (Exportadores)
         std::vector<double> in_degree_trade = analizadorTrade.calcular_in_degree_centrality();
         std::vector<double> out_degree_trade = analizadorTrade.calcular_out_degree_centrality();
 
@@ -248,7 +339,7 @@ int main() {
         auto finBetwTrade = std::chrono::high_resolution_clock::now();
         DCentralityTop(trade, betw_trade, "Betweenness (Puntos criticos de comercio)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwTrade - inicioBetwTrade).count() << " ms\n";
-*/
+
         //Closeness Centrality
         std::cout << "\n[!] Calcula Closeness Centrality:\n";
         
@@ -295,7 +386,11 @@ int main() {
 
         DCoreTop(trade, coreness_trade, "Coreness (Nucleo de la red comercial global)");
         std::cout << "    (Tiempo de calculo: " << tiempoCoreTrade.count() << " ms)\n";
+
+        ejecutar_experimento_perturbacion(trade);
     }
+
+    
 
     std::cout << "===================================" << std::endl;
 

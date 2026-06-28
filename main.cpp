@@ -201,7 +201,18 @@ int main() {
         std::cout << "   [OK] Dataset Yeast cargado con exito.\n";
         std::cout << "   [*] Numero de vertices (V): " << yeast.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << yeast.obtener_num_aristas() << std::endl;
+        
+        // ── DEGREE CENTRALITY (Yeast) ──
+    std::vector<double> degree_yeast;
+    for (int i = 1; i <= 10; ++i) {
+        auto inicio = std::chrono::high_resolution_clock::now();
+        degree_yeast = analizadorYeast.calcular_degree_centrality(); // Asumiendo este nombre de método
+        auto fin = std::chrono::high_resolution_clock::now();
+        archivo_csv << "yeast,degree," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+    }
+    DCentralityTop(yeast, degree_yeast, "Degree Centrality");
 
+        
         // ── CLOSENESS CENTRALITY (10 iteraciones) ──
         std::cout << "\n[!] Ejecutando Closeness Centrality (10 repeticiones)...\n";
         std::vector<double> closeness_yeast;
@@ -214,6 +225,50 @@ int main() {
         }
         DCentralityTop(yeast, closeness_yeast, "Closeness Centrality (Proteinas Centrales)");
 
+        
+        // ── AVERAGE SHORTEST PATH ──
+        double avg_path = 0.0;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            avg_path = analizadorYeast.calcular_average_shortest_path();
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "yeast,avg_path," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        std::cout << "\n- Average Shortest Path: " << avg_path << "\n";
+
+        // ── HITS (10 iteraciones) ──
+        std::cout << "\n[!] Ejecutando HITS (10 repeticiones)...\n";
+        std::pair<std::vector<double>, std::vector<double>> hits_trade;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            hits_trade = analizadorYeast.calcular_hits();
+            auto fin = std::chrono::high_resolution_clock::now();
+            std::chrono::duration<double, std::milli> tiempo = fin - inicio;
+            archivo_csv << "yeast,hits," << i << "," << std::fixed << std::setprecision(4) << tiempo.count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(yeast, hits_trade.first,  "HITS - Hub Scores");
+        DCentralityTop(yeast, hits_trade.second, "HITS - Authority Scores");
+
+        // ── BETWEENNESS CENTRALITY  ──
+        std::vector<double> betw_data;
+        for (int i = 1; i <= 10; ++i) {
+             auto inicio = std::chrono::high_resolution_clock::now();
+            betw_data = analizadorYeast.calcular_betweenness_centrality();
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "yeast,betweenness," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(yeast, betw_data, "Betweenness Centrality");
+
+        // ── PAGERANK  ──
+        std::vector<double> pr_data;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            pr_data = analizadorYeast.calcular_pagerank();
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "yeast,pagerank," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(yeast, pr_data, "PageRank");
+        
         // ── CORENESS (10 iteraciones) ──
         std::cout << "\n[!] Ejecutando Coreness (10 repeticiones)...\n";
         std::vector<int> coreness_yeast;
@@ -240,6 +295,17 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << trade.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << trade.obtener_num_aristas() << std::endl;
 
+
+        // ── DEGREE CENTRALITY (Trade) ──
+        std::vector<double> degree_trade;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            degree_trade = analizadorTrade.calcular_degree_centrality(); 
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "trade,degree," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(trade, degree_trade, "Degree Centrality");
+
         // ── CLOSENESS CENTRALITY (10 iteraciones) ──
         std::cout << "\n[!] Ejecutando Closeness Centrality (10 repeticiones)...\n";
         std::vector<double> closeness_trade;
@@ -251,6 +317,16 @@ int main() {
             archivo_csv << "trade,closeness," << i << "," << std::fixed << std::setprecision(4) << tiempo.count() << "," << obtener_memoria_kb() << "\n";
         }
         DCentralityTop(trade, closeness_trade, "Closeness Centrality (Nodos mas interconectados)");
+
+        // ── AVERAGE SHORTEST PATH ──
+        double avg_path = 0.0;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            avg_path = analizadorTrade.calcular_average_shortest_path(); // Cambiar a analizadorYeast en la otra sección
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "trade,avg_path," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        std::cout << "\n- Average Shortest Path: " << avg_path << "\n";
 
         // ── HITS (10 iteraciones) ──
         std::cout << "\n[!] Ejecutando HITS (10 repeticiones)...\n";
@@ -265,6 +341,26 @@ int main() {
         DCentralityTop(trade, hits_trade.first,  "HITS - Hub Scores (Exportadores mas influyentes)");
         DCentralityTop(trade, hits_trade.second, "HITS - Authority Scores (Principales destinos comerciales)");
 
+
+        // ── BETWEENNESS CENTRALITY ──
+        std::vector<double> betw_data;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            betw_data = analizadorTrade.calcular_betweenness_centrality();
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "trade,betweenness," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(trade, betw_data, "Betweenness Centrality");
+
+        // ── PAGERANK ──
+        std::vector<double> pr_data;
+        for (int i = 1; i <= 10; ++i) {
+            auto inicio = std::chrono::high_resolution_clock::now();
+            pr_data = analizadorTrade.calcular_pagerank();
+            auto fin = std::chrono::high_resolution_clock::now();
+            archivo_csv << "trade,pagerank," << i << "," << std::chrono::duration<double, std::milli>(fin-inicio).count() << "," << obtener_memoria_kb() << "\n";
+        }
+        DCentralityTop(trade, pr_data, "PageRank");
         // ── CORENESS (10 iteraciones) ──
         std::cout << "\n[!] Ejecutando Coreness (10 repeticiones)...\n";
         std::vector<int> coreness_trade;
@@ -277,7 +373,7 @@ int main() {
         }
         DCoreTop(trade, coreness_trade, "Coreness (Nucleo de la red comercial global)");
 
-        // ── EXPERIMENTOS DE PERTURBACIÓN (Compañero) ──
+        // ── EXPERIMENTOS DE PERTURBACIÓN ──
         ejecutar_experimento_perturbacion(trade);
     }
 

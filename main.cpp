@@ -107,8 +107,39 @@ void DCentralityTop(const Grafo& grafo, const std::vector<double>& centralidad, 
     }
 }
 
+/*
+Imprime el TOP 5 de nodos ordenados por su K-Shell (coreness).
+Función independiente de DCentralityTop para respetar la firma
+std::vector<int> que retorna calcular_coreness(), evitando conversiones
+implícitas o mezcla de tipos int/double en la interfaz de display.
+*/
+void DCoreTop(const Grafo& grafo, const std::vector<int>& coreness, const std::string& titulo) {
+    std::cout << "\n-  TOP: " << titulo << "   -\n";
+    int V = grafo.obtener_num_vertices();
+    if (V == 0) return;
+
+    // Vector de pares {id_interno, k_shell} para poder recuperar el nombre externo tras ordenar
+    std::vector<std::pair<int, int>> ranking;
+    ranking.reserve(V);
+    for (int i = 0; i < V; ++i) {
+        ranking.push_back({i, coreness[i]});
+    }
+
+    // Orden descendente por K-Shell
+    std::sort(ranking.begin(), ranking.end(), [](const std::pair<int, int>& a, const std::pair<int, int>& b) {
+        return a.second > b.second;
+    });
+
+    int limite = std::min(5, V);
+    for (int i = 0; i < limite; ++i) {
+        std::string nombre_nodo = grafo.mapear_a_externo(ranking[i].first);
+        std::cout << i + 1 << ". Nodo: " << nombre_nodo
+                  << " | K-Shell: " << ranking[i].second << "\n";
+    }
+}
+
 int main() {
-    std::cout << "===== PRUEBAS Y TEST COMPLETO =====\n\n";
+    std::cout << "========= PRUEBAS Y TESTEO =========\n\n";
 
     //Cargar Dataset Yeast 
     std::cout << "===================================" << std::endl;
@@ -125,7 +156,7 @@ int main() {
         std::cout << "   [*] Numero de vertices (V): " << yeast.obtener_num_vertices() << std::endl;
         std::cout << "   [*] Numero de aristas (E) : " << yeast.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoYeast.count() << " ms\n" << std::endl;
-
+/*
         std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
 
         // CALCULA DEGREE CENTRALITY
@@ -148,6 +179,33 @@ int main() {
         DCentralityTop(yeast, betw_yeast, "Betweenness (Cuellos de botella proteicos)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwYeast - inicioBetwYeast).count() << " ms\n";
         // Al ser muchos nodos puede demorar un poco en realizar el calculo tiempo estimado de 15 min, dada las ejecucuiones hechas.
+*/
+        // probando closeness en yeast (al tener tantos nodos, demora varios minutos)
+        std::cout << "\n[!] Calculando Closeness Centrality (Version BFS):\n";
+        
+        auto inicioCloseYeast = std::chrono::high_resolution_clock::now();
+        
+        // se llama explícitamente a la versión _bfs
+        std::vector<double> closeness_yeast = analizadorYeast.calcular_closeness_centrality_bfs();
+        
+        auto finCloseYeast = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoCloseYeast = finCloseYeast - inicioCloseYeast;
+
+        DCentralityTop(yeast, closeness_yeast, "Closeness Centrality (Proteinas Centrales)");
+        std::cout << "    (Tiempo de calculo: " << tiempoCloseYeast.count() << " ms)\n";
+
+        // ── K-CORE DECOMPOSITION (Yeast) ─────────────────────────────
+        std::cout << "\n[!] Calculando Coreness (K-Core decomposition):\n";
+
+        auto inicioCoreYeast = std::chrono::high_resolution_clock::now();
+
+        std::vector<int> coreness_yeast = analizadorYeast.calcular_coreness();
+
+        auto finCoreYeast = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoCoreYeast = finCoreYeast - inicioCoreYeast;
+
+        DCoreTop(yeast, coreness_yeast, "Coreness (Proteinas en el nucleo de la red)");
+        std::cout << "    (Tiempo de calculo: " << tiempoCoreYeast.count() << " ms)\n";
     }
 
     //Cargar Dataset Trade Network 
@@ -166,8 +224,8 @@ int main() {
         std::cout << "   [*] Numero de aristas (E) : " << trade.obtener_num_aristas() << std::endl;
         std::cout << "   [*] Tiempo de construccion: " << tiempoTrade.count() << " ms\n" << std::endl;
 
-        std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
-
+        //std::cout << "-- D E G R E E  C E N T R A L I T Y -- " << std::endl;
+/*
         // TEST    DEGREE   CENTRALITY
         // Calcular In-Degree (Importadores) y Out-Degree (Exportadores)
         std::vector<double> in_degree_trade = analizadorTrade.calcular_in_degree_centrality();
@@ -184,13 +242,59 @@ int main() {
         std::cout << "   [*] Largo promedio de la red: " << avg_path_trade << std::endl;
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finAvgTrade - inicioAvgTrade).count() << " ms\n";
         
-
         std::cout << "\n-- B E T W E E N N E S S  C E N T R A L I T Y -- " << std::endl;
         auto inicioBetwTrade = std::chrono::high_resolution_clock::now();
         std::vector<double> betw_trade = analizadorTrade.calcular_betweenness_centrality();
         auto finBetwTrade = std::chrono::high_resolution_clock::now();
         DCentralityTop(trade, betw_trade, "Betweenness (Puntos criticos de comercio)");
         std::cout << "   [*] Calculado en: " << std::chrono::duration<double, std::milli>(finBetwTrade - inicioBetwTrade).count() << " ms\n";
+*/
+        //Closeness Centrality
+        std::cout << "\n[!] Calcula Closeness Centrality:\n";
+        
+        // Se inicia el cronómetro
+        auto inicioClose = std::chrono::high_resolution_clock::now();
+        
+        // Se llama a la función 
+        std::vector<double> closeness = analizadorTrade.calcular_closeness_centrality();
+        
+        // Detiene cronómetro
+        auto finClose = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoClose = finClose - inicioClose;
+
+        // Imprime el Top 5
+        DCentralityTop(trade, closeness, "Closeness Centrality (Nodos mas interconectados)");
+        std::cout << "    (Tiempo de calculo: " << tiempoClose.count() << " ms)\n";
+
+        // ── HITS — Hubs y Autoridades (Trade Network) ─────────────────
+        std::cout << "\n[!] Calculando HITS (Hubs y Autoridades):\n";
+
+        auto inicioHits = std::chrono::high_resolution_clock::now();
+
+        // calcular_hits() retorna std::pair<vector<double>, vector<double>>
+        // .first  = Hub Scores      (paises que exportan hacia buenos destinos)
+        // .second = Authority Scores (paises que reciben de buenos exportadores)
+        auto [hubs_trade, auths_trade] = analizadorTrade.calcular_hits();
+
+        auto finHits = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoHits = finHits - inicioHits;
+
+        DCentralityTop(trade, hubs_trade,  "HITS - Hub Scores (Exportadores mas influyentes)");
+        DCentralityTop(trade, auths_trade, "HITS - Authority Scores (Principales destinos comerciales)");
+        std::cout << "    (Tiempo de calculo: " << tiempoHits.count() << " ms)\n";
+
+        // ── K-CORE DECOMPOSITION (Trade Network) ──────────────────────
+        std::cout << "\n[!] Calculando Coreness (K-Core decomposition):\n";
+
+        auto inicioCoreTrade = std::chrono::high_resolution_clock::now();
+
+        std::vector<int> coreness_trade = analizadorTrade.calcular_coreness();
+
+        auto finCoreTrade = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> tiempoCoreTrade = finCoreTrade - inicioCoreTrade;
+
+        DCoreTop(trade, coreness_trade, "Coreness (Nucleo de la red comercial global)");
+        std::cout << "    (Tiempo de calculo: " << tiempoCoreTrade.count() << " ms)\n";
     }
 
     std::cout << "===================================" << std::endl;
